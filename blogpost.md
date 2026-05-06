@@ -32,26 +32,34 @@ As a result, the convolutional layers in a deep network are translation equivari
 Equivariance can be extended to larger groups, including rotation. This generalization is achieved through Group Convolutional Neural Networks (G-CNN). A CNN layer is equivariant to a group if transforming the input $x$ by transformation $g \in G$ ($T_g$) followed by the feature mapping $\Phi$ is similar to doing the feature mapping on the input and the transformation $T'_g$ thereafter:
 
 ```math
+\begin{align*}
 \Phi(T_g x) = T'_g \Phi(x) \qquad \forall g \in G \tag{1}
+\end{align*}
 ```
 
 where $T_g$ and $T'_g$ can be equivalent.
 We utilize the equations from [[1]](#group_convs) to show that G-CNNs are equivariant. Instead of shifting a filter, correlation in the first layer can be described more generally by replacing it with some transformation from group $G$, whereby $f$ is the input image and $\psi$ is the filter:
 
 ```math
+\begin{align*}
 [f \star \psi](g) = \sum_{y \in \mathbb{Z}^2}\sum_{k} f_k(y)\, \psi_{k}(g^{-1}y) \tag{2}
+\end{align*}
 ```
 
 Since the feature map $f \star \psi$ is a function on G, the filters are functions on G for all layers after the first. The correlation then becomes:
 
 ```math
+\begin{align*}
 [f \star \psi](g) = \sum_{h \in G}\sum_{k} f_k(h)\, \psi_{k}(g^{-1}h) \tag{3}
+\end{align*}
 ```
 
 We define the left regular representation, whereby the group is acting on the transitive input space of the function $f: X \rightarrow Y$:
 
 ```math
+\begin{align*}
 [L_g f](x) = [f \circ g^{-1}](x) = f(g^{-1}x) \tag{4}
+\end{align*}
 ```
 
 Using this representation and the substitution $h \rightarrow uh$, the equivariance of the correlation can be derived such that a translation followed by a correlation is equivalent to a correlation followed by a translation:
@@ -75,6 +83,7 @@ This definition is extended to group theory, by defining the group $H_n$ as a su
 This leads to the following parameterization of $H_n$, with $n$ identifying the total number of discrete rotations, $k$ encoding a specific rotation, $a = \frac{1}{3} - \frac{1}{3}\cos\!\left(\frac{2k\pi}{n}\right)$ and $b = \sqrt{\frac{1}{3}} \cdot \sin\!\left(\frac{2k\pi}{n}\right)$:
 
 ```math
+\begin{align*}
 H_n =
 \begin{bmatrix}
 \cos\!\left(\tfrac{2k\pi}{n}\right) + a & a - b & a + b \\
@@ -82,19 +91,24 @@ a + b & \cos\!\left(\tfrac{2k\pi}{n}\right) + a & a - b \\
 a - b & a + b & \cos\!\left(\tfrac{2k\pi}{n}\right) + a
 \end{bmatrix}
 \tag{6}
+\end{align*}
 ```
 
 The group of discrete hue shifts is combined with the group of discrete 2D translations into the group $G = \mathbb{Z}^2 \times H_n$. The Color Equivariant Convolution (CEConv) in the first layer is defined in [[5]](#main) as:
 
 ```math
+\begin{align*}
 [f \star \psi^i](x, k) = \sum_{y \in \mathbb{Z}^2}\sum_{c=1}^{C^l} f_c(y) \cdot H_n(k)\,\psi_c^i(y - x) \tag{7}
+\end{align*}
 ```
 
 However, a small error is present here as the sum $\sum_{c=1}^{C^l}$ indicates that $f_c(y)$ and $\psi_c^i(y - x)$ are scalar values. This interpretation is inconsistent given the dot product and the matrix $H_n(k)$.
 Therefore the correct formula should be:
 
 ```math
+\begin{align*}
 [f \star \psi^i](x, k) = \sum_{y \in \mathbb{Z}^2} f(y) \cdot H_n(k)\,\psi^i(y - x) \tag{8}
+\end{align*}
 ```
 
 However, this change does not impact the derivation of the equivariance of the CEConv layer, as given in the original paper [[5]](#main).
@@ -102,7 +116,9 @@ However, this change does not impact the derivation of the equivariance of the C
 For the hidden layers, the feature map $[f \star \psi]$ is a function on $G$ parameterized by $x$ and $k$. The CEConv hidden layers formula then becomes:
 
 ```math
+\begin{align*}
 [f \star \psi^i](x, k) = \sum_{y \in \mathbb{Z}^2}\sum_{r=1}^{n} f(y,r) \cdot \psi^i\!\left(y - x,\; (r-k) \bmod n\right) \tag{9}
+\end{align*}
 ```
 
 ## Reproduction of Experiments
@@ -196,19 +212,25 @@ For an overview of the color spaces and their limitations, we refer to section [
 In our implementation of the HSV space, **hue** is modeled as an angular value between 0 and $2\pi$ and can be changed by adding or subtracting such an angle modulo $2\pi$. Therefore, we represent the group $H_n$ as a set of $\frac{2\pi}{n}$ rotations: $H_n = \lbrace \frac{2k\pi}{n} \mid k \in \mathbb{Z},\ 0 \leq k < n \rbrace$, which due to the circular definition of hue the group $H_n$ is isomorphic to the cyclic group $C_n$. In HSV space this can be parameterized as the vector:
 
 ```math
+\begin{align*}
 H_n(k) = \begin{bmatrix} \tfrac{2k\pi}{n} \\ 0 \\ 0 \end{bmatrix} \tag{10}
+\end{align*}
 ```
 
 In which $n$ is the discrete number of rotations and $k$ indicates the $k$-th rotation out of $n$. The group action is an addition on an HSV pixel value in $\mathbb{R}^3$ modulo $2\pi$:
 
 ```math
+\begin{align*}
 [H_n(k)f](x) = \begin{bmatrix} \left(f(x)_h + \tfrac{2k\pi}{n}\right) \bmod 2\pi \\ f(x)_s \\ f(x)_v \end{bmatrix} \tag{11}
+\end{align*}
 ```
 
 with $f(x)_{h,s,v}$ indicating the respective hue, saturation, or value at pixel value $x$ in input image $f$. [[5]](#main) applies this transformation on the kernel made possible by the use of the inverse of the rotation matrix. However, in hue space a shift is defined as a translation modulo $2\pi$, which alleviates the problem of reprojection but is a non-linear operation, and therefore we cannot apply the transformation directly on the kernel:
 
 ```math
+\begin{align*}
 [H_n(k)f](x) \cdot \psi(y) \neq f(x) \cdot [H_n(-k)\psi](y) \tag{12}
+\end{align*}
 ```
 
 To see this difference some models are trained in which the kernels are naively shifted as if they were an image and compared to models in which the shift is applied to the images. **Shifting the image** is done following the approach of [[9]](#lifting) using the semigroup correlation. In standard group convolutions, the change of variable needed to apply the group transformation to the kernel requires an inverse which is not always available in a semigroup. Therefore, [[9]](#lifting) applies the action to the signal (image) allowing for a more general transformation that can change pixel values instead of using the group correlation of [[1]](#group_convs) that can only change pixel locations.
@@ -216,18 +238,22 @@ To see this difference some models are trained in which the kernels are naively 
 We can now define the group $G = \mathbb{Z}^2 \times H_n$ as the product of the 2D integers translation group and the HSV hue shift group. With $\bmod$ as the modulo operator and $\mathcal{L}_{t,m}$ defining a translation and hue shift:
 
 ```math
+\begin{align*}
 [\mathcal{L}_{t,m}f](x) = [H_n(m)f](x-t) =
 \begin{bmatrix}
 \left(f(x-t)_h + \tfrac{2\pi}{n}\,m\right) \bmod 2\pi \\
 f(x-t)_s \\
 f(x-t)_v
 \end{bmatrix} \tag{13}
+\end{align*}
 ```
 
 We can then define the lifting layer outputting the $i$-th output channel as:
 
 ```math
+\begin{align*}
 [\psi^i \star f](x, k) = \sum_{y \in \mathbb{Z}^2} \psi^i(y) \cdot [H_n(k)f](y-x) \tag{14}
+\end{align*}
 ```
 
 Here $f$ is the input image and $\psi^i$ a set of corresponding filters. Equivariance can be shown as:
@@ -244,24 +270,30 @@ Here $f$ is the input image and $\psi^i$ a set of corresponding filters. Equivar
 Since the input HSV image is now lifted to the group space, all subsequent features and filters are functions that need to be indexed using both a pixel location and a discrete rotation. The group convolution can then be defined as:
 
 ```math
+\begin{align*}
 [f \star \psi^i](x, k) = \sum_{y \in \mathbb{Z}^2}\sum_{r=1}^{n} f(y,r) \cdot \psi^i\!\left(y-x,\; (r-k) \bmod n\right) \tag{16}
+\end{align*}
 ```
 
 **Saturation** is represented as a number between 0 and 1, requiring a group that contains $n$ elements equally spaced between -1 and 1 to model both an increase and decrease in saturation. This makes all group elements fall in the set: $H_n = \lbrace -1 + k\frac{2}{n-1} \mid n \geq 2,\ k = 0,1,2,\ldots,n-1 \rbrace$. In HSV space this can be parameterized as the vector:
 
 ```math
+\begin{align*}
 H_n(k) = \begin{bmatrix} 0 \\ -1 + k\,\tfrac{2}{n-1} \\ 0 \end{bmatrix} \tag{17}
+\end{align*}
 ```
 
 Because saturation is only defined between 0 and 1 and is acyclic, we clip the value after the group action:
 
 ```math
+\begin{align*}
 [H_n(k)f](x) =
 \begin{bmatrix}
 f(x)_h \\
-\operatorname{clip}\!\left(0,\; f(x)_s + \left(-1 + k\,\tfrac{2}{n-1}\right),\; 1\right) \\
+\text{clip}\!\left(0,\; f(x)_s + \left(-1 + k\,\tfrac{2}{n-1}\right),\; 1\right) \\
 f(x)_v
 \end{bmatrix} \tag{18}
+\end{align*}
 ```
 
 This clipping due to the acyclic nature of saturation might break equivariance, which will be tested with several experiments: applying the group action on the kernel and the image ([saturation equivariance](#saturation-equivariance)), and testing different values for $n$ ([Appendix B](#b-ablation-study-saturation-equivariance)).
@@ -269,12 +301,14 @@ This clipping due to the acyclic nature of saturation might break equivariance, 
 **Value** equivariance can be modeled in the same way as described for saturation where the group action is now acting upon the value channel:
 
 ```math
+\begin{align*}
 [H_n(k)f](x) =
 \begin{bmatrix}
 f(x)_h \\
 f(x)_s \\
-\operatorname{clip}\!\left(0,\; f(x)_v + \left(-1 + k\,\tfrac{2}{n-1}\right),\; 1\right)
+\text{clip}\!\left(0,\; f(x)_v + \left(-1 + k\,\tfrac{2}{n-1}\right),\; 1\right)
 \end{bmatrix} \tag{19}
+\end{align*}
 ```
 
 Due to our earlier experiments involving the application of the group element on the kernel or the image, we decided to only model the value shift on the input images.
@@ -282,7 +316,9 @@ Due to our earlier experiments involving the application of the group element on
 **Combining Multiple Shifts -** Because of the separated channels when utilizing the HSV color space, we can describe the group product between multiple channel shifts as the direct product of the previously described groups.
 
 ```math
+\begin{align*}
 G = \mathbb{Z}_2 \times C_n \times \mathbb{R} \times \mathbb{R} \tag{20}
+\end{align*}
 ```
 
 The group action for the corresponding $h'$, $s'$, and $v'$ discrete hue, saturation, and value shifts respectively, is then defined as:
@@ -291,8 +327,8 @@ The group action for the corresponding $h'$, $s'$, and $v'$ discrete hue, satura
 \mathcal{L}_{(t,\,h',s',v')} = [H_n(h',s',v')f](x-t) =
 \begin{bmatrix}
 \left(f(x-t)_h + \tfrac{2\pi}{n}\,h'\right) \bmod 2\pi \\
-\operatorname{clip}\!\left(0,\; f(x-t)_s + \left(-1 + s'\tfrac{2}{n-1}\right),\; 1\right) \\
-\operatorname{clip}\!\left(0,\; f(x-t)_v + \left(-1 + v'\tfrac{2}{n-1}\right),\; 1\right)
+\text{clip}\!\left(0,\; f(x-t)_s + \left(-1 + s'\tfrac{2}{n-1}\right),\; 1\right) \\
+\text{clip}\!\left(0,\; f(x-t)_v + \left(-1 + v'\tfrac{2}{n-1}\right),\; 1\right)
 \end{bmatrix} \tag{21}
 ```
 
